@@ -21,6 +21,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-prepare-polylines
         image: pelias/polylines:master
@@ -80,6 +82,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-prepare-placeholder
         image: pelias/placeholder:master
@@ -147,6 +151,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-prepare-interpolation
         image: pelias/interpolation:master

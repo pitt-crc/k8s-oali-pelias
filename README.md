@@ -32,7 +32,7 @@ Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-imp
    `WaitForFirstConsumer` class leaves it Pending and stalls wave 0). If you only have RWO,
    all Pelias pods that mount the PVC must be scheduled on one node (add pod affinity).
    Sizes (50Gi data, 20Gi Elasticsearch) are estimates; adjust after the first build.
-2. **Security context.** Pods run as uid/gid 1000 (the `DOCKER_USER` equivalent). Change
+2. **Security context.** Pods run as uid/gid 1000 (the `DOCKER_USER` equivalent) with `seccompProfile: RuntimeDefault`, non-root, no privilege escalation and all capabilities dropped, to satisfy the Pod Security `restricted` level. Change
    `runAsUser`/`fsGroup` if your cluster requires a specific range.
 3. **Elasticsearch host settings.** Heap is `-Xms2g -Xmx2g` with a 4Gi limit (guess). If ES
    exits on `vm.max_map_count`, the node setting must be raised by a cluster admin.

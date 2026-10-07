@@ -21,6 +21,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-download-wof
         image: pelias/whosonfirst:master
@@ -86,6 +88,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-download-oa
         image: pelias/openaddresses:master
@@ -151,6 +155,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-download-osm
         image: pelias/openstreetmap:master
@@ -216,6 +222,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-download-tiger
         image: pelias/interpolation:master
@@ -274,6 +282,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: pelias-download-transit
         image: pelias/transit:master
