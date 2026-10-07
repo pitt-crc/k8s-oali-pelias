@@ -41,7 +41,11 @@ Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-imp
 3. **Elasticsearch host settings.** Heap is `-Xms2g -Xmx2g` with a 4Gi limit (guess). If ES
    exits on `vm.max_map_count`, the node setting must be raised by a cluster admin.
    The compose file's `memlock`/`IPC_LOCK` is not reproduced.
-4. **Resources.** Requests/limits are starting points, not measured values.
+4. **Resources.** Requests/limits (including `ephemeral-storage`) are starting points, not measured values.
+   Ephemeral storage is node disk: the container's writable layer, `/tmp`, `emptyDir` and logs (not the
+   PVC, and not the image). A pod that exceeds its ephemeral limit is evicted, so if an import is evicted
+   for that reason, raise its limit. The OSM importer uses `/tmp` for its leveldb (`leveldbpath`), so it has
+   the largest allowance (2Gi request / 8Gi limit).
 5. **Upstream URLs.** The OSM extract (Nextzen S3) and MTA GTFS URLs in `pelias.json` may be
    stale. A failed download Job fails wave 2 and stops the sync; remove that source from
    `pelias.json` and its Job if it is dead.

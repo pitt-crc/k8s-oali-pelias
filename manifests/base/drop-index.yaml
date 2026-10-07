@@ -1,12 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: pelias-schema-create
+  name: pelias-schema-drop
   labels:
     app.kubernetes.io/part-of: pelias
-    app.kubernetes.io/component: build
-  annotations:
-    argocd.argoproj.io/sync-wave: '1'
+    app.kubernetes.io/component: ops
+  annotations: {}
 spec:
   backoffLimit: 0
   template:
@@ -24,10 +23,12 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - name: pelias-schema-create
+      - name: pelias-schema-drop
         image: pelias/schema:master
         command:
-        - ./bin/create_index
+        - sh
+        - -c
+        - node scripts/drop_index || true
         env:
         - name: PELIAS_CONFIG
           value: /code/pelias.json

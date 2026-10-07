@@ -48,8 +48,10 @@ spec:
           requests:
             cpu: 500m
             memory: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             memory: 6Gi
+            ephemeral-storage: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -124,8 +126,10 @@ spec:
           requests:
             cpu: 500m
             memory: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             memory: 6Gi
+            ephemeral-storage: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -199,8 +203,10 @@ spec:
           requests:
             cpu: 500m
             memory: 2Gi
+            ephemeral-storage: 2Gi
           limits:
             memory: 6Gi
+            ephemeral-storage: 8Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -270,8 +276,10 @@ spec:
           requests:
             cpu: 500m
             memory: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             memory: 6Gi
+            ephemeral-storage: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -338,8 +346,10 @@ spec:
           requests:
             cpu: 500m
             memory: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             memory: 6Gi
+            ephemeral-storage: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
