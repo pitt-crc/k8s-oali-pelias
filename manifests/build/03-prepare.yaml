@@ -14,6 +14,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
+        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -58,6 +59,13 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: pelias-data
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                pelias.io/uses-data: 'true'
+            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
 kind: Job
@@ -75,6 +83,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
+        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -127,6 +136,13 @@ spec:
       - name: blacklist
         configMap:
           name: pelias-osm-blacklist
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                pelias.io/uses-data: 'true'
+            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
 kind: Job
@@ -144,6 +160,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
+        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -188,3 +205,10 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: pelias-data
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                pelias.io/uses-data: 'true'
+            topologyKey: kubernetes.io/hostname

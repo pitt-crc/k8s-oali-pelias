@@ -18,6 +18,7 @@ spec:
         app: pip
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: serve
+        pelias.io/uses-data: 'true'
     spec:
       securityContext:
         runAsUser: 1000
@@ -70,6 +71,13 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: pelias-data
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                pelias.io/uses-data: 'true'
+            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: v1
 kind: Service

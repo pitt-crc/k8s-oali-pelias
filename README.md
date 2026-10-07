@@ -27,10 +27,14 @@ Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-imp
 
 ## Before the first sync
 
-1. **Storage.** `base/pvc.yaml` requests 50Gi `ReadWriteMany`. Set `storageClassName` to an
-   RWX class with **Immediate** binding (Argo CD waits for the PVC to be healthy, and a
-   `WaitForFirstConsumer` class leaves it Pending and stalls wave 0). If you only have RWO,
-   all Pelias pods that mount the PVC must be scheduled on one node (add pod affinity).
+1. **Storage.** Uses the two vSphere CSI classes on this cluster. `pelias-data` (50Gi, `ReadWriteOnce`)
+   uses `pitt-vcf-vks-storage-policy` (Immediate binding, which Argo CD needs so wave 0 can finish).
+   Elasticsearch's volume (20Gi) uses `pitt-vcf-vks-storage-policy-latebinding`.
+   Because the data volume is RWO, every pod that mounts it carries the label `pelias.io/uses-data: "true"`
+   and a required podAffinity on that label (topology `kubernetes.io/hostname`), so they all land on one
+   node. The first such pod schedules anywhere; later ones follow it. That node must have room for the
+   concurrent pods in a wave. If your vSphere environment provides an RWX class (vSAN File Services),
+   switch `pelias-data` to `ReadWriteMany` and delete the affinity block.
    Sizes (50Gi data, 20Gi Elasticsearch) are estimates; adjust after the first build.
 2. **Security context.** Pods run as uid/gid 1000 (the `DOCKER_USER` equivalent) with `seccompProfile: RuntimeDefault`, non-root, no privilege escalation and all capabilities dropped, to satisfy the Pod Security `restricted` level. Change
    `runAsUser`/`fsGroup` if your cluster requires a specific range.

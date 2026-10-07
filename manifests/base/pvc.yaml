@@ -10,7 +10,8 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   accessModes:
-  - ReadWriteMany
+  - ReadWriteOnce
+  storageClassName: pitt-vcf-vks-storage-policy
   resources:
     requests:
       storage: 50Gi

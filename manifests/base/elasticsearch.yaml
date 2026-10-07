@@ -70,6 +70,7 @@ spec:
     spec:
       accessModes:
       - ReadWriteOnce
+      storageClassName: pitt-vcf-vks-storage-policy-latebinding
       resources:
         requests:
           storage: 20Gi
