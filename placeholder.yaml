@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: placeholder
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: serve
+  annotations:
+    argocd.argoproj.io/sync-wave: '10'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: placeholder
+  template:
+    metadata:
+      labels:
+        app: placeholder
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: serve
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: placeholder
+        image: pelias/placeholder:master
+        ports:
+        - containerPort: 4100
+          name: http
+        env:
+        - name: PORT
+          value: '4100'
+        readinessProbe:
+          tcpSocket:
+            port: 4100
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 4100
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: placeholder
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: serve
+  annotations:
+    argocd.argoproj.io/sync-wave: '10'
+spec:
+  selector:
+    app: placeholder
+  ports:
+  - name: http
+    port: 4100
+    targetPort: 4100

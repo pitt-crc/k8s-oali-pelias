@@ -1,0 +1,310 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-download-wof
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-download-wof
+        image: pelias/whosonfirst:master
+        command:
+        - ./bin/download
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        - name: blacklist
+          mountPath: /data/blacklist/osm.txt
+          subPath: osm.txt
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+      - name: blacklist
+        configMap:
+          name: pelias-osm-blacklist
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-download-oa
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-download-oa
+        image: pelias/openaddresses:master
+        command:
+        - ./bin/download
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        - name: blacklist
+          mountPath: /data/blacklist/osm.txt
+          subPath: osm.txt
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+      - name: blacklist
+        configMap:
+          name: pelias-osm-blacklist
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-download-osm
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-download-osm
+        image: pelias/openstreetmap:master
+        command:
+        - ./bin/download
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        - name: blacklist
+          mountPath: /data/blacklist/osm.txt
+          subPath: osm.txt
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+      - name: blacklist
+        configMap:
+          name: pelias-osm-blacklist
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-download-tiger
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-download-tiger
+        image: pelias/interpolation:master
+        command:
+        - ./bin/download-tiger
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-download-transit
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-download-transit
+        image: pelias/transit:master
+        command:
+        - ./bin/download
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data

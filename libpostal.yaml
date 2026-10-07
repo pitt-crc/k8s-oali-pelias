@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: libpostal
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: serve
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: libpostal
+  template:
+    metadata:
+      labels:
+        app: libpostal
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: serve
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: libpostal
+        image: pelias/libpostal-service
+        ports:
+        - containerPort: 4400
+          name: http
+        env: []
+        readinessProbe:
+          tcpSocket:
+            port: 4400
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 4400
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: 250m
+            memory: 2Gi
+          limits:
+            memory: 4Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: libpostal
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: serve
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  selector:
+    app: libpostal
+  ports:
+  - name: http
+    port: 4400
+    targetPort: 4400

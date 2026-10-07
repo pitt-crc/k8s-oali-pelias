@@ -1,0 +1,184 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-prepare-polylines
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '3'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-prepare-polylines
+        image: pelias/polylines:master
+        command:
+        - bash
+        - ./docker_extract.sh
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-prepare-placeholder
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '3'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-prepare-placeholder
+        image: pelias/placeholder:master
+        command:
+        - sh
+        - -c
+        - ./cmd/extract.sh && ./cmd/build.sh
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        - name: blacklist
+          mountPath: /data/blacklist/osm.txt
+          subPath: osm.txt
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data
+      - name: blacklist
+        configMap:
+          name: pelias-osm-blacklist
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-prepare-interpolation
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: build
+  annotations:
+    argocd.argoproj.io/sync-wave: '4'
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: build
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-prepare-interpolation
+        image: pelias/interpolation:master
+        command:
+        - bash
+        - ./docker_build.sh
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: data
+          mountPath: /data
+          readOnly: false
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            memory: 6Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pelias-data

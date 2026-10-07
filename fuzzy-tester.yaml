@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pelias-fuzzy-tester
+  labels:
+    app.kubernetes.io/part-of: pelias
+    app.kubernetes.io/component: test
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: pelias
+        app.kubernetes.io/component: test
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: pelias-fuzzy-tester
+        image: pelias/fuzzy-tester:master
+        env:
+        - name: PELIAS_CONFIG
+          value: /code/pelias.json
+        volumeMounts:
+        - name: config
+          mountPath: /code/pelias.json
+          subPath: pelias.json
+          readOnly: true
+        - name: test-cases
+          mountPath: /code/pelias/fuzzy-tester/test_cases
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        args:
+        - -e
+        - docker
+      volumes:
+      - name: config
+        configMap:
+          name: pelias-config
+      - name: test-cases
+        configMap:
+          name: pelias-test-cases
