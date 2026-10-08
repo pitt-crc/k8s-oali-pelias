@@ -27,7 +27,13 @@ spec:
       - name: pelias-schema-create
         image: pelias/schema:master
         command:
-        - ./bin/create_index
+        - sh
+        - -c
+        # An existing index counts as success; any other error still fails the Job
+        - |
+          out=$(./bin/create_index 2>&1); rc=$?
+          echo "$out"
+          [ "$rc" -eq 0 ] || echo "$out" | grep -q resource_already_exists_exception
         env:
         - name: PELIAS_CONFIG
           value: /code/pelias.json
