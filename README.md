@@ -1,89 +1,159 @@
-# Pelias New York City on Kubernetes (Argo CD sync waves)
+# Pelias New York City
 
-Kustomize layout translated from `pelias/docker/projects/new-york-city`.
-Point the Argo CD Application at this directory; it renders `kustomization.yaml`.
+Pelias is an open-source geocoder built on Elasticsearch. It turns addresses and place names into coordinates, and
+answers search queries against data built from OpenStreetMap, OpenAddresses, Who's On First, TIGER, and MTA subway
+stops. The manifests here are a translation of the original
+[Docker Compose project](https://github.com/pelias/docker/tree/master/projects/new-york-city)
+for New York City, which is linked above.
 
-## Sync waves (replaces the `pelias` helper script)
+## What is deployed
 
-| Wave | Resources | Replaces |
-|---|---|---|
-| 0 | PVC `pelias-data`, ConfigMaps, Elasticsearch StatefulSet + Service, libpostal | `elastic start`, `elastic wait` (readiness probe = yellow health) |
-| 1 | Job `pelias-schema-create` | `elastic create` |
-| 2 | Download Jobs: wof, oa, osm, tiger, transit (parallel) | `download all` |
-| 3 | Prepare Jobs: polylines, placeholder (parallel) | `prepare all` (first half) |
-| 4 | Prepare Job: interpolation | `prepare all` (second half) |
-| 5-9 | Import Jobs, one per wave: wof, oa, osm, polylines, transit | `import all` |
-| 10 | Deployments + Services: placeholder, pip, interpolation, api | `compose up` |
-| PostSync | Job `pelias-fuzzy-tester` | `test run` |
+The original Pelias project is deployed using Docker Compose and requires the `pelias` helper command to run build
+steps in a specific order. This repository replaces that manual process with Kubernetes Jobs and Argo CD sync waves.
 
-Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-importer
-(no CSV config in `pelias.json`). Add them back if you need them.
+Argo CD applies resources one wave at a time, in ascending order, and waits for everything in a wave to be healthy
+before starting the next. For Jobs, healthy means completed. A failed Job stops the sync at that wave. The waves below
+reproduce the order the helper command enforced:
 
-## Changes from the upstream project
+| Wave     | Resources                                          | Replaces                                         |
+|----------|----------------------------------------------------|--------------------------------------------------|
+| 0        | ConfigMaps, data PVC, Elasticsearch, libpostal     | `pelias elastic start` and `pelias elastic wait` |
+| 1        | Schema Job                                         | `pelias elastic create`                          |
+| 2        | Download Jobs (parallel)                           | `pelias download all`                            |
+| 3        | Prepare Jobs: polylines and placeholder (parallel) | `pelias prepare all`, first half                 |
+| 4        | Prepare Job: interpolation                         | `pelias prepare all`, second half                |
+| 5 to 9   | Import Jobs, one per wave                          | `pelias import all`                              |
+| 10       | Pelias services                                    | `pelias compose up`                              |
+| PostSync | Fuzzy-tester Job                                   | `pelias test run`                                |
 
-- `config/pelias.json`: only `api.defaultParameters.focus.point` changed (Portland -> NYC).
-- Compose service hostnames are preserved as Service names, so the rest of `pelias.json` is untouched.
-- `config/osm-blacklist.txt` is the (empty) upstream `blacklist/osm.txt`, mounted at `/data/blacklist/osm.txt`.
+The manifests are organized into directories by purpose.
+The sections that follow describe each one in the order listed here.
 
-## Before the first sync
+| Directory     | Contents                                                                 |
+|---------------|--------------------------------------------------------------------------|
+| `base/`       | Storage, Elasticsearch, and libpostal. Everything else depends on these. |
+| `build/`      | The one-shot Jobs that create the index and build the data.              |
+| `serve/`      | The Pelias services that answer queries.                                 |
+| `test/`       | The acceptance-test hook.                                                |
+| `config/`     | `pelias.json` and the OpenStreetMap blacklist, turned into ConfigMaps.   |
+| `test_cases/` | The fuzzy-tester test cases, turned into a ConfigMap.                    |
 
-1. **Storage.** Uses the two vSphere CSI classes on this cluster. `pelias-data` (50Gi, `ReadWriteOnce`)
-   uses `pitt-vcf-vks-storage-policy` (Immediate binding, which Argo CD needs so wave 0 can finish).
-   Elasticsearch's volume (20Gi) uses `pitt-vcf-vks-storage-policy-latebinding`.
-   A RWO volume can only be mounted on one node at a time, so pods that run *concurrently* and mount it
-   must share a node. Affinity is therefore scoped to concurrent groups (label `pelias.io/data-group`):
-   `download` (the five downloads), `prepare` (polylines + placeholder), and `serve` (placeholder, pip,
-   interpolation). Pods that run alone (interpolation prepare, each import) are unpinned, and different
-   groups may land on different nodes: the volume detaches when a wave finishes and reattaches elsewhere
-   (a brief "Multi-Attach" warning while it moves is normal). To drop the remaining pinning, serialize
-   the groups into separate sync waves, or use an RWX class and delete the affinity blocks.
-   Sizes (50Gi data, 20Gi Elasticsearch) are estimates; adjust after the first build.
-   **Scratch space.** To keep `/tmp` off the small node disks, the OSM import (10Gi) and the three prepare
-   Jobs (5Gi each) get a generic ephemeral volume mounted at `/tmp` (late-binding class). These volumes are
-   created per pod and only deleted when the pod is deleted. Completed Job pods stay around, so their
-   scratch volumes keep counting against your storage quota until you delete the Jobs. Edit `SCRATCH` sizes
-   or membership in the manifests if a step needs more or less.
-2. **Security context.** Pods run as uid/gid 1000 (the `DOCKER_USER` equivalent) with `seccompProfile: RuntimeDefault`, non-root, no privilege escalation and all capabilities dropped, to satisfy the Pod Security `restricted` level. Change
-   `runAsUser`/`fsGroup` if your cluster requires a specific range.
-3. **Elasticsearch host settings.** Heap is `-Xms2g -Xmx2g` with a 4Gi limit (guess). If ES
-   exits on `vm.max_map_count`, the node setting must be raised by a cluster admin.
-   The compose file's `memlock`/`IPC_LOCK` is not reproduced.
-4. **Resources.** Requests/limits (including `ephemeral-storage`) are starting points, not measured values.
-   Ephemeral storage is node disk: the container's writable layer, `/tmp`, `emptyDir` and logs (not the
-   PVC, and not the image). A pod that exceeds its ephemeral limit is evicted, so if an import is evicted
-   for that reason, raise its limit. The OSM importer uses `/tmp` for its leveldb (`leveldbpath`), so it has
-   the same allowance as the other imports (1Gi / 4Gi) now that its `/tmp` is a scratch volume.
-5. **Upstream URLs.** The OSM extract (Nextzen S3) and MTA GTFS URLs in `pelias.json` may be
-   stale. A failed download Job fails wave 2 and stops the sync; remove that source from
-   `pelias.json` and its Job if it is dead.
-6. **Image tags.** `:master` matches the compose file; pin tags for reproducibility.
-7. **Argo CD project.** Needs `Job`, `StatefulSet`, `Deployment`, `Service`, `ConfigMap`,
-   `PersistentVolumeClaim` whitelisted.
+### Base (Wave 0)
 
-## Rerunning / refreshing the build
+The _base_ manifests deploy the foundational application components.
+Data volumes are annotated `Prune=false`, so removing it from git does not delete the data.
 
-Jobs are normal resources, so a successful sync does not rerun them and their specs are
-immutable. Do **not** add `ttlSecondsAfterFinished` (Argo CD would recreate the Jobs).
+| File                 | Resources             | Details                                                                |
+|----------------------|-----------------------|------------------------------------------------------------------------|
+| `pvc.yaml`           | PersistentVolumeClaim | (50Gi, `ReadWriteOnce`) use to store all downloaded and prepared data. |
+| `elasticsearch.yaml` | StatefulSet, Service  | Single-node Elasticsearch with its own 20Gi volume.                    |
+| `libpostal.yaml`     | Deployment, Service   | Address-parsing service on port 4400.                                  |
 
-To rebuild:
+### Build (Waves 1 to 9)
+
+The _build_ manifests are used to download and prepare data from external sources.
+Downloads are spread across multiple waves to lessen disk pressure on host nodes.
+
+| File               | Wave    | Jobs                                                                                              |
+|--------------------|---------|---------------------------------------------------------------------------------------------------|
+| `01-schema.yaml`   | 1       | Create the `pelias` index.                                                                        |
+| `02-download.yaml` | 2       | Download Who's On First, OpenAddresses, OpenStreetMap, TIGER, and transit data.                   |
+| `03-prepare.yaml`  | 3 and 4 | Build polylines and the placeholder database (wave 3), then the interpolation databases (wave 4). |
+| `04-import.yaml`   | 5 to 9  | Import Who's On First, OpenAddresses, OpenStreetMap, polylines, and transit, in that order.       |
+
+### Serve (Waver 10)
+
+The _serve_ manifests deploy the application APIs and launch all end user services.
+
+| File                 | Service                                  | Port |
+|----------------------|------------------------------------------|------|
+| `api.yaml`           | Pelias API                               | 4000 |
+| `placeholder.yaml`   | Placeholder (administrative-area lookup) | 4100 |
+| `pip.yaml`           | Point-in-polygon service                 | 4200 |
+| `interpolation.yaml` | Address interpolation                    | 4300 |
+
+### Test
+
+The _test_ manifests use an Argo CD PostSync hook to validate deployed resources and make sure they are healthy.
+The **`fuzzy-tester.yaml`** manifest runs the Pelias fuzzy-tester against `http://api:4000/v1/` using the cases
+from `test_cases/`. If any test fails, the sync is reported as failed.
+
+### Config and Test Cases
+
+The _config_ and _test_cases_ directories hold the inputs that Kustomize turns into ConfigMaps.
+When changing the config files the application setup jobs must be deleted and recreated, as described in
+[Apply a configuration change](#apply-a-configuration-change).
+
+| File                       | ConfigMap              | Details                                                                                 |
+|----------------------------|------------------------|-----------------------------------------------------------------------------------------|
+| `config/pelias.json`       | `pelias-config`        | Read by every Pelias container: Elasticsearch settings, service URLs, and data sources. |
+| `config/osm-blacklist.txt` | `pelias-osm-blacklist` | Mounted at `/data/blacklist/osm.txt`. Empty by default.                                 |
+
+## Common tasks
+
+### Smoke test the API
+
+Send a search and a reverse-geocode query through a port-forward.
 
 ```bash
-kubectl delete jobs -l app.kubernetes.io/component=build
-kubectl apply -f ops/drop-index.yaml      # elastic drop (then delete that Job)
-# then re-sync the Application
+kubectl port-forward svc/api 4000:4000 -n <namespace>
+
+# In a second terminal
+curl 'http://localhost:4000/v1/search?text=111+8th+ave+nyc'
+curl 'http://localhost:4000/v1/reverse?point.lat=40.741&point.lon=-74.004'
 ```
 
-The schema Job treats "index already exists" as success (any other error still fails it), so it is
-safe to rerun. That also means it will not reset an existing index: for a clean rebuild, run
-`ops/drop-index.yaml` first.
+### Check index health and counts
 
-If you change the downloaded data sources, also clear the relevant directories on the
-`pelias-data` PVC. A failed import usually requires drop-index + rerun of the schema and
-import Jobs.
+Confirm Elasticsearch is healthy and each import loaded data.
 
-`pelias-data` is annotated `Prune=false` so removing it from git does not delete the data.
+```bash
+# Cluster health and index size
+kubectl exec elasticsearch-0 -n <namespace> -- curl -s 'localhost:9200/_cluster/health?pretty'
+kubectl exec elasticsearch-0 -n <namespace> -- curl -s 'localhost:9200/_cat/indices?v'
 
-## Not included
+# Document counts per source and layer
+kubectl exec elasticsearch-0 -n <namespace> -- curl -s 'localhost:9200/pelias/_search?size=0&pretty' \
+  -H 'Content-Type: application/json' \
+  -d '{"aggs":{"sources":{"terms":{"field":"source","size":100},"aggs":{"layers":{"terms":{"field":"layer","size":100}}}}}}'
+```
 
-- Ingress for `api` (depends on your ingress class and host).
-- Auto-sync is best left off, or the PostSync test job runs on every sync.
+### Full rebuild
+
+Drop the index and rerun every build step.
+
+Use this when sources change or the index may be in a bad state.
+If you changed which sources are used, also remove stale directories from the data volume.
+
+```bash
+# Delete the index, then the build Jobs
+kubectl exec elasticsearch-0 -n <namespace> -- curl -s -X DELETE 'localhost:9200/pelias'
+kubectl delete jobs -l app.kubernetes.io/component=build -n <namespace>
+
+# Sync and watch progress
+argocd app sync <argocd-app>
+kubectl get jobs -n <namespace> -w
+```
+
+### Reimport one source
+
+Rerun a single import.
+
+To a single data source, delete the matching `pelias-download-*` job and rerun the matching `pelias-download-*` job.
+A reimport updates documents in place but does not remove records dropped from the source, so
+use a full rebuild when you need a clean index.
+
+```bash
+kubectl delete job pelias-import-oa -n <namespace>
+argocd app sync <argocd-app>
+```
+
+### Apply a configuration change
+
+To deploy an edited config file, delete the old sync job and do a full rebuild.
+
+```bash
+# Edit config/pelias.json, commit, and push, then:
+kubectl delete jobs -l app.kubernetes.io/component=build -n <namespace>
+argocd app sync <argocd-app>
+```
