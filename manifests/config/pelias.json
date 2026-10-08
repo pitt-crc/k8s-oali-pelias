@@ -50,12 +50,12 @@
     },
     "openstreetmap": {
       "download": [
-        { "sourceURL": "https://s3.amazonaws.com/metro-extracts.nextzen.org/new-york_new-york.osm.pbf" }
+        { "sourceURL": "https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf" }
       ],
       "leveldbpath": "/tmp",
       "datapath": "/data/openstreetmap",
       "import": [{
-        "filename": "new-york_new-york.osm.pbf"
+        "filename": "new-york-latest.osm.pbf"
       }]
     },
     "openaddresses": {
