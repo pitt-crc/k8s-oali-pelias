@@ -67,7 +67,9 @@ spec:
         - name: es-data
           mountPath: /usr/share/elasticsearch/data
   volumeClaimTemplates:
-  - metadata:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
       name: es-data
     spec:
       accessModes:
