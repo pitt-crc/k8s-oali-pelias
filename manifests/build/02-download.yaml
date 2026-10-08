@@ -14,7 +14,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: download
     spec:
       restartPolicy: Never
       securityContext:
@@ -72,7 +72,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: download
             topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
@@ -91,7 +91,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: download
     spec:
       restartPolicy: Never
       securityContext:
@@ -149,7 +149,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: download
             topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
@@ -168,7 +168,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: download
     spec:
       restartPolicy: Never
       securityContext:
@@ -226,7 +226,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: download
             topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
@@ -245,7 +245,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: download
     spec:
       restartPolicy: Never
       securityContext:
@@ -296,7 +296,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: download
             topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
@@ -315,7 +315,7 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: download
     spec:
       restartPolicy: Never
       securityContext:
@@ -366,5 +366,5 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: download
             topologyKey: kubernetes.io/hostname

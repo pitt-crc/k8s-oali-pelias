@@ -18,7 +18,7 @@ spec:
         app: pip
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: serve
-        pelias.io/uses-data: 'true'
+        pelias.io/data-group: serve
     spec:
       securityContext:
         runAsUser: 1000
@@ -78,7 +78,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                pelias.io/uses-data: 'true'
+                pelias.io/data-group: serve
             topologyKey: kubernetes.io/hostname
 ---
 apiVersion: v1

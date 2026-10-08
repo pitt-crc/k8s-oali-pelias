@@ -14,7 +14,6 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -67,13 +66,6 @@ spec:
       - name: blacklist
         configMap:
           name: pelias-osm-blacklist
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                pelias.io/uses-data: 'true'
-            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
 kind: Job
@@ -91,7 +83,6 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -145,13 +136,6 @@ spec:
       - name: blacklist
         configMap:
           name: pelias-osm-blacklist
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                pelias.io/uses-data: 'true'
-            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
 kind: Job
@@ -169,7 +153,6 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -199,14 +182,16 @@ spec:
           mountPath: /data/blacklist/osm.txt
           subPath: osm.txt
           readOnly: true
+        - name: scratch
+          mountPath: /tmp
         resources:
           requests:
             cpu: 500m
             memory: 2Gi
-            ephemeral-storage: 2Gi
+            ephemeral-storage: 1Gi
           limits:
             memory: 6Gi
-            ephemeral-storage: 8Gi
+            ephemeral-storage: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -222,13 +207,16 @@ spec:
       - name: blacklist
         configMap:
           name: pelias-osm-blacklist
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                pelias.io/uses-data: 'true'
-            topologyKey: kubernetes.io/hostname
+      - name: scratch
+        ephemeral:
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              storageClassName: pitt-vcf-vks-storage-policy-latebinding
+              resources:
+                requests:
+                  storage: 10Gi
 ---
 apiVersion: batch/v1
 kind: Job
@@ -246,7 +234,6 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -292,13 +279,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: pelias-data
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                pelias.io/uses-data: 'true'
-            topologyKey: kubernetes.io/hostname
 ---
 apiVersion: batch/v1
 kind: Job
@@ -316,7 +296,6 @@ spec:
       labels:
         app.kubernetes.io/part-of: pelias
         app.kubernetes.io/component: build
-        pelias.io/uses-data: 'true'
     spec:
       restartPolicy: Never
       securityContext:
@@ -362,10 +341,3 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: pelias-data
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                pelias.io/uses-data: 'true'
-            topologyKey: kubernetes.io/hostname

@@ -30,12 +30,19 @@ Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-imp
 1. **Storage.** Uses the two vSphere CSI classes on this cluster. `pelias-data` (50Gi, `ReadWriteOnce`)
    uses `pitt-vcf-vks-storage-policy` (Immediate binding, which Argo CD needs so wave 0 can finish).
    Elasticsearch's volume (20Gi) uses `pitt-vcf-vks-storage-policy-latebinding`.
-   Because the data volume is RWO, every pod that mounts it carries the label `pelias.io/uses-data: "true"`
-   and a required podAffinity on that label (topology `kubernetes.io/hostname`), so they all land on one
-   node. The first such pod schedules anywhere; later ones follow it. That node must have room for the
-   concurrent pods in a wave. If your vSphere environment provides an RWX class (vSAN File Services),
-   switch `pelias-data` to `ReadWriteMany` and delete the affinity block.
+   A RWO volume can only be mounted on one node at a time, so pods that run *concurrently* and mount it
+   must share a node. Affinity is therefore scoped to concurrent groups (label `pelias.io/data-group`):
+   `download` (the five downloads), `prepare` (polylines + placeholder), and `serve` (placeholder, pip,
+   interpolation). Pods that run alone (interpolation prepare, each import) are unpinned, and different
+   groups may land on different nodes: the volume detaches when a wave finishes and reattaches elsewhere
+   (a brief "Multi-Attach" warning while it moves is normal). To drop the remaining pinning, serialize
+   the groups into separate sync waves, or use an RWX class and delete the affinity blocks.
    Sizes (50Gi data, 20Gi Elasticsearch) are estimates; adjust after the first build.
+   **Scratch space.** To keep `/tmp` off the small node disks, the OSM import (10Gi) and the three prepare
+   Jobs (5Gi each) get a generic ephemeral volume mounted at `/tmp` (late-binding class). These volumes are
+   created per pod and only deleted when the pod is deleted. Completed Job pods stay around, so their
+   scratch volumes keep counting against your storage quota until you delete the Jobs. Edit `SCRATCH` sizes
+   or membership in the manifests if a step needs more or less.
 2. **Security context.** Pods run as uid/gid 1000 (the `DOCKER_USER` equivalent) with `seccompProfile: RuntimeDefault`, non-root, no privilege escalation and all capabilities dropped, to satisfy the Pod Security `restricted` level. Change
    `runAsUser`/`fsGroup` if your cluster requires a specific range.
 3. **Elasticsearch host settings.** Heap is `-Xms2g -Xmx2g` with a 4Gi limit (guess). If ES
@@ -45,7 +52,7 @@ Omitted on purpose: geonames (only runs when `ENABLE_GEONAMES=true`) and csv-imp
    Ephemeral storage is node disk: the container's writable layer, `/tmp`, `emptyDir` and logs (not the
    PVC, and not the image). A pod that exceeds its ephemeral limit is evicted, so if an import is evicted
    for that reason, raise its limit. The OSM importer uses `/tmp` for its leveldb (`leveldbpath`), so it has
-   the largest allowance (2Gi request / 8Gi limit).
+   the same allowance as the other imports (1Gi / 4Gi) now that its `/tmp` is a scratch volume.
 5. **Upstream URLs.** The OSM extract (Nextzen S3) and MTA GTFS URLs in `pelias.json` may be
    stale. A failed download Job fails wave 2 and stops the sync; remove that source from
    `pelias.json` and its Job if it is dead.
@@ -65,6 +72,10 @@ kubectl delete jobs -l app.kubernetes.io/component=build
 kubectl apply -f ops/drop-index.yaml      # elastic drop (then delete that Job)
 # then re-sync the Application
 ```
+
+The schema Job treats "index already exists" as success (any other error still fails it), so it is
+safe to rerun. That also means it will not reset an existing index: for a clean rebuild, run
+`ops/drop-index.yaml` first.
 
 If you change the downloaded data sources, also clear the relevant directories on the
 `pelias-data` PVC. A failed import usually requires drop-index + rerun of the schema and
