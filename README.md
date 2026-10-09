@@ -6,12 +6,13 @@ stops. The manifests here are a translation of the original
 [Docker Compose project](https://github.com/pelias/docker/tree/master/projects/new-york-city)
 for New York City, which is linked above.
 
-The original project downloads data from a free community-built map called OpenStreetMap.
-The upstream URL included in the original documentation (commit
+The original project downloads data from multiple sources, including a free community-built map called OpenStreetMap
+(OSM). The upstream OPSM URL used in the original documentation (commit
 [fdb4a01](https://github.com/pelias/docker/commit/fdb4a01c7d5addb04bba8e5129497e50eba784ce))
-no longer works, so this deployment switched to use data from Geofabrik instead.
+no longer works, so this deployment switched to using data from Geofabrik instead.
 Geofabrik’s file covers all of New York State rather than just the city, so the import is larger and takes longer.
 The modified URL data can be found in `config/pelias.json` and are listed below:
+
 - **Original URL:** https://s3.amazonaws.com/metro-extracts.nextzen.org/new-york_new-york.osm.pbf
 - **Replacement URL:** https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf
 
