@@ -1,33 +1,34 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- base/pvc.yaml
-- base/elasticsearch.yaml
-- base/libpostal.yaml
-- build/01-schema.yaml
-- build/02-download.yaml
-- build/03-prepare.yaml
-- build/04-import.yaml
-- serve/placeholder.yaml
-- serve/pip.yaml
-- serve/interpolation.yaml
-- serve/api.yaml
-- test/fuzzy-tester.yaml
+  - base/pvc.yaml
+  - base/elasticsearch.yaml
+  - base/libpostal.yaml
+  - build/01-schema.yaml
+  - build/02-download.yaml
+  - build/03-prepare.yaml
+  - build/04-import.yaml
+  - serve/placeholder.yaml
+  - serve/pip.yaml
+  - serve/interpolation.yaml
+  - serve/api.yaml
+  - serve/quota.yaml
+  - test/fuzzy-tester.yaml
 configMapGenerator:
-- name: pelias-config
-  files:
-  - pelias.json=config/pelias.json
-  options:
-    annotations: &id001
-      argocd.argoproj.io/sync-wave: '0'
-- name: pelias-osm-blacklist
-  files:
-  - osm.txt=config/osm-blacklist.txt
-  options:
-    annotations: *id001
-- name: pelias-test-cases
-  files:
-  - search_address.json=test_cases/search_address.json
-  - search_venue.json=test_cases/search_venue.json
-  options:
-    annotations: *id001
+  - name: pelias-config
+    files:
+      - pelias.json=config/pelias.json
+    options:
+      annotations: &id001
+        argocd.argoproj.io/sync-wave: '0'
+  - name: pelias-osm-blacklist
+    files:
+      - osm.txt=config/osm-blacklist.txt
+    options:
+      annotations: *id001
+  - name: pelias-test-cases
+    files:
+      - search_address.json=test_cases/search_address.json
+      - search_venue.json=test_cases/search_venue.json
+    options:
+      annotations: *id001
