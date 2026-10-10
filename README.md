@@ -71,7 +71,7 @@ Downloads are spread across multiple waves to lessen disk pressure on host nodes
 | `03-prepare.yaml`  | 3 and 4 | Build polylines and the placeholder database (wave 3), then the interpolation databases (wave 4). |
 | `04-import.yaml`   | 5 to 9  | Import Who's On First, OpenAddresses, OpenStreetMap, polylines, and transit, in that order.       |
 
-### Serve (Waver 10)
+### Serve (Waves 10)
 
 The _serve_ manifests deploy the application APIs and launch all end user services.
 
