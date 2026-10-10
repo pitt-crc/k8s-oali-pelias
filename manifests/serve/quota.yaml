@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/part-of: pelias
     app.kubernetes.io/component: serve
   annotations:
-    argocd.argoproj.io/sync-wave: '11'
+    argocd.argoproj.io/sync-wave: '10'
 spec:
   hard:
     requests.cpu: '2'

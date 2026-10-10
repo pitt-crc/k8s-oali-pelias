@@ -81,6 +81,7 @@ The _serve_ manifests deploy the application APIs and launch all end user servic
 | `placeholder.yaml`   | Placeholder (administrative-area lookup) | 4100 |
 | `pip.yaml`           | Point-in-polygon service                 | 4200 |
 | `interpolation.yaml` | Address interpolation                    | 4300 |
+| `quota.yaml`         | Namespace rsource limits                 | N/A  |
 
 ### Test
 
